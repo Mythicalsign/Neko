@@ -20,7 +20,7 @@ set -Eeo pipefail
 # GLOBAL VARIABLES AND PATHS
 # ═══════════════════════════════════════════════════════════════════════════════
 
-readonly NEKO_VERSION="2.0.0"
+readonly NEKO_VERSION="2.1.0"
 readonly SCRIPTPATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly MODULES_PATH="${SCRIPTPATH}/modules"
 readonly LIB_PATH="${SCRIPTPATH}/lib"
@@ -669,6 +669,10 @@ load_modules() {
         "parallel.sh"
         "async_pipeline.sh"
         "error_handling.sh"
+        "error_reporting.sh"
+        "queue_manager.sh"
+        "data_flow_bus.sh"
+        "orchestrator.sh"
         "proxy_rotation.sh"
         "intelligence.sh"
         "plugin.sh"
@@ -766,6 +770,9 @@ run_full_mode() {
     log_phase "FULL SCAN MODE (INTRUSIVE)"
     notify "Starting full scan for $domain" "warning"
     
+    # Initialize v2.1 systems
+    init_v21_systems
+    
     # Trigger pre-scan hooks
     type -t trigger_pre_scan &>/dev/null && trigger_pre_scan
     
@@ -792,6 +799,9 @@ run_full_mode() {
     # Phase 16: Advanced Vulnerability Testing (v2.0)
     [[ "${ADVANCED_VULNS_ENABLED:-true}" == "true" ]] && run_advanced_vulns_phase
     
+    # Phase 17: Bettercap Network Security Testing (v2.1)
+    [[ "${BETTERCAP_ENABLED:-true}" == "true" ]] && run_bettercap_phase
+    
     # Run intelligence correlation
     if [[ "${INTELLIGENCE_ENABLED:-true}" == "true" ]] && type -t intel_correlate &>/dev/null; then
         intel_correlate
@@ -802,6 +812,9 @@ run_full_mode() {
     
     # Regenerate report with findings
     run_report_phase
+    
+    # Cleanup v2.1 systems
+    cleanup_v21_systems
     
     # Trigger post-scan hooks
     type -t trigger_post_scan &>/dev/null && trigger_post_scan
@@ -1090,6 +1103,66 @@ run_advanced_vulns_phase() {
     else
         log_warning "Advanced Vulnerability module not loaded"
     fi
+}
+
+run_bettercap_phase() {
+    if [[ "$(type -t bettercap_main)" == "function" ]]; then
+        bettercap_main
+    else
+        log_warning "Bettercap module not loaded"
+    fi
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SYSTEM INITIALIZATION (v2.1)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+init_v21_systems() {
+    log_info "Initializing v2.1 systems..."
+    
+    # Initialize Queue Management System
+    if [[ "${QUEUE_ENABLED:-true}" == "true" ]] && type -t queue_init &>/dev/null; then
+        queue_init "${dir}/.queue"
+        log_debug "Queue management system initialized"
+    fi
+    
+    # Initialize Error Reporting System
+    if [[ "${ERROR_REPORTING_ENABLED:-true}" == "true" ]] && type -t error_report_init &>/dev/null; then
+        error_report_init "${dir}/reports"
+        log_debug "Error reporting system initialized"
+    fi
+    
+    # Initialize Data Flow Bus
+    if [[ "${DATA_BUS_ENABLED:-true}" == "true" ]] && type -t data_bus_init &>/dev/null; then
+        data_bus_init "${dir}/.data_bus"
+        log_debug "Data flow bus initialized"
+    fi
+    
+    # Initialize Orchestrator
+    if [[ "${ORCHESTRATOR_ENABLED:-true}" == "true" ]] && type -t orchestrator_init &>/dev/null; then
+        orchestrator_init "${dir}/.orchestrator"
+        log_debug "Orchestrator initialized"
+    fi
+    
+    log_success "All v2.1 systems initialized"
+}
+
+cleanup_v21_systems() {
+    log_info "Cleaning up v2.1 systems..."
+    
+    # Cleanup Queue Management
+    type -t queue_cleanup &>/dev/null && queue_cleanup
+    
+    # Finalize Error Reports
+    type -t error_report_finalize &>/dev/null && error_report_finalize
+    
+    # Cleanup Data Bus
+    type -t data_bus_cleanup &>/dev/null && data_bus_cleanup
+    
+    # Cleanup Orchestrator
+    type -t orchestrator_cleanup &>/dev/null && orchestrator_cleanup
+    
+    log_debug "v2.1 systems cleanup completed"
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
