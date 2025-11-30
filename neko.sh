@@ -477,47 +477,199 @@ handle_error() {
 trap 'handle_error ${LINENO} $?' ERR
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# NOTIFICATION SYSTEM
+# NOTIFICATION SYSTEM (v2.2 - Discord Primary)
 # ═══════════════════════════════════════════════════════════════════════════════
 
-# Send notification via various channels
+# Send notification via Discord (primary channel)
 notify() {
     local message="$1"
-    local level="${2:-info}"  # info, warning, error, success
+    local level="${2:-info}"  # info, warning, error, success, critical
     local title="${3:-Neko Notification}"
+    local context="${4:-}"
     
-    # Console output
+    # Map levels to log and Discord types
+    local log_level="INFO"
+    local discord_type="INFO"
+    
     case "$level" in
-        info) log_info "$message" ;;
-        warning) log_warning "$message" ;;
-        error) log_error "$message" ;;
-        success) log_success "$message" ;;
+        info)
+            log_level="INFO"
+            discord_type="INFO"
+            ;;
+        warning)
+            log_level="WARNING"
+            discord_type="WARNING"
+            ;;
+        error)
+            log_level="ERROR"
+            discord_type="ERROR"
+            ;;
+        success)
+            log_level="NOTICE"
+            discord_type="SUCCESS"
+            ;;
+        critical)
+            log_level="CRITICAL"
+            discord_type="CRITICAL"
+            ;;
     esac
     
-    # Notify tool (ProjectDiscovery)
-    if [[ "${NOTIFICATION_ENABLED:-false}" == "true" ]] && command_exists notify; then
-        echo "$message" | notify -silent -id "neko" 2>/dev/null || true
+    # Log to advanced logging system
+    if type -t neko_log &>/dev/null; then
+        neko_log "$log_level" "NOTIFY" "$message" "title=${title}" "$context"
+    else
+        # Fallback to basic console output
+        case "$level" in
+            info) log_info "$message" ;;
+            warning) log_warning "$message" ;;
+            error) log_error "$message" ;;
+            success) log_success "$message" ;;
+            critical) log_error "[CRITICAL] $message" ;;
+        esac
     fi
     
-    # Slack notification
-    if [[ -n "${SLACK_WEBHOOK:-}" ]]; then
-        curl -s -X POST -H 'Content-type: application/json' \
-            --data "{\"text\":\"[$level] $title: $message\"}" \
-            "$SLACK_WEBHOOK" 2>/dev/null || true
+    # Send to Discord (primary notification channel)
+    if [[ "${DISCORD_ENABLED:-true}" == "true" ]] && type -t discord_send_embed &>/dev/null; then
+        discord_send_embed "$title" "$message" "$discord_type" \
+            "Target|${domain:-unknown}" \
+            "Mode|${mode:-recon}"
+    fi
+}
+
+# Notify vulnerability finding (specialized for vuln notifications)
+notify_vulnerability() {
+    local severity="$1"
+    local vuln_type="$2"
+    local target="$3"
+    local tool="${4:-unknown}"
+    local details="${5:-}"
+    local poc="${6:-}"
+    
+    # Log to advanced logging system
+    if type -t neko_log_vulnerability &>/dev/null; then
+        neko_log_vulnerability "$severity" "$vuln_type" "$target" "$tool" "$details" "$poc"
     fi
     
-    # Discord notification
-    if [[ -n "${DISCORD_WEBHOOK:-}" ]]; then
-        curl -s -H "Content-Type: application/json" \
-            -d "{\"content\":\"[$level] $title: $message\"}" \
-            "$DISCORD_WEBHOOK" 2>/dev/null || true
+    # Send to Discord
+    if [[ "${DISCORD_ENABLED:-true}" == "true" ]] && \
+       [[ "${DISCORD_NOTIFY_VULNERABILITIES:-true}" == "true" ]] && \
+       type -t discord_notify_vulnerability &>/dev/null; then
+        discord_notify_vulnerability "$severity" "$vuln_type" "$target" "$tool" "$details" "$poc"
+    fi
+}
+
+# Notify phase start
+notify_phase_start() {
+    local phase_number="$1"
+    local phase_name="$2"
+    local description="${3:-}"
+    
+    # Log to advanced logging system
+    if type -t neko_log_phase_start &>/dev/null; then
+        neko_log_phase_start "$phase_name" "$phase_number" "$description"
     fi
     
-    # Telegram notification
-    if [[ -n "${TELEGRAM_BOT_TOKEN:-}" ]] && [[ -n "${TELEGRAM_CHAT_ID:-}" ]]; then
-        curl -s "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-            -d "chat_id=${TELEGRAM_CHAT_ID}" \
-            -d "text=[$level] $title: $message" 2>/dev/null || true
+    # Send to Discord
+    if [[ "${DISCORD_ENABLED:-true}" == "true" ]] && \
+       [[ "${DISCORD_NOTIFY_PHASE_START:-true}" == "true" ]] && \
+       type -t discord_notify_phase_start &>/dev/null; then
+        discord_notify_phase_start "$phase_number" "$phase_name" "$description"
+    fi
+}
+
+# Notify phase completion
+notify_phase_complete() {
+    local phase_number="$1"
+    local phase_name="$2"
+    local duration="$3"
+    local findings="${4:-0}"
+    local status="${5:-completed}"
+    
+    # Log to advanced logging system
+    if type -t neko_log_phase_end &>/dev/null; then
+        neko_log_phase_end "$phase_name" "$phase_number" "$status" "$duration" "$findings"
+    fi
+    
+    # Send to Discord
+    if [[ "${DISCORD_ENABLED:-true}" == "true" ]] && \
+       [[ "${DISCORD_NOTIFY_PHASE_END:-true}" == "true" ]] && \
+       type -t discord_notify_phase_complete &>/dev/null; then
+        discord_notify_phase_complete "$phase_number" "$phase_name" "$duration" "$findings" "$status"
+    fi
+}
+
+# Notify tool execution
+notify_tool_run() {
+    local tool_name="$1"
+    local phase="$2"
+    local status="$3"
+    local duration="$4"
+    local output_count="${5:-0}"
+    
+    # Send to Discord (if enabled for tool notifications)
+    if [[ "${DISCORD_ENABLED:-true}" == "true" ]] && \
+       [[ "${DISCORD_NOTIFY_TOOL_RUN:-false}" == "true" ]] && \
+       type -t discord_notify_tool_run &>/dev/null; then
+        discord_notify_tool_run "$tool_name" "$phase" "$status" "$duration" "$output_count"
+    fi
+}
+
+# Notify subdomain discoveries
+notify_subdomains() {
+    local count="$1"
+    local sample="${2:-}"
+    local source="${3:-multiple}"
+    
+    # Log to advanced logging system
+    if type -t neko_log &>/dev/null; then
+        neko_log "INFO" "SUBDOMAIN" "Discovered ${count} subdomains" "source=${source}"
+    fi
+    
+    # Send to Discord
+    if [[ "${DISCORD_ENABLED:-true}" == "true" ]] && \
+       [[ "${DISCORD_NOTIFY_SUBDOMAINS:-true}" == "true" ]] && \
+       type -t discord_notify_subdomains &>/dev/null; then
+        discord_notify_subdomains "$count" "$sample" "$source"
+    fi
+}
+
+# Notify subdomain takeover potential
+notify_takeover() {
+    local subdomain="$1"
+    local service="$2"
+    local confidence="${3:-medium}"
+    local details="${4:-}"
+    
+    # Log to advanced logging system
+    if type -t neko_log_vulnerability &>/dev/null; then
+        neko_log_vulnerability "HIGH" "Subdomain Takeover" "$subdomain" "takeover-scan" "Service: $service, Confidence: $confidence" ""
+    fi
+    
+    # Send to Discord
+    if [[ "${DISCORD_ENABLED:-true}" == "true" ]] && \
+       [[ "${DISCORD_NOTIFY_TAKEOVER:-true}" == "true" ]] && \
+       type -t discord_notify_takeover &>/dev/null; then
+        discord_notify_takeover "$subdomain" "$service" "$confidence" "$details"
+    fi
+}
+
+# Notify errors
+notify_error() {
+    local error_type="$1"
+    local message="$2"
+    local tool="${3:-system}"
+    local recoverable="${4:-true}"
+    
+    # Log to advanced logging system
+    if type -t neko_log_error &>/dev/null; then
+        neko_log_error "$message" "1" "$recoverable"
+    fi
+    
+    # Send to Discord
+    if [[ "${DISCORD_ENABLED:-true}" == "true" ]] && \
+       [[ "${DISCORD_NOTIFY_ERRORS:-true}" == "true" ]] && \
+       type -t discord_notify_error &>/dev/null; then
+        discord_notify_error "$error_type" "$message" "$tool" "$recoverable"
     fi
 }
 
@@ -666,6 +818,8 @@ load_modules() {
     # Load library functions first (in order of dependencies)
     local lib_load_order=(
         "core.sh"
+        "logging.sh"
+        "discord_notifications.sh"
         "parallel.sh"
         "async_pipeline.sh"
         "error_handling.sh"
@@ -1455,13 +1609,33 @@ main() {
             log_info "Processing target: $domain"
             
             setup_output_dir "$domain" "$output_dir"
+            
+            # Initialize logging system for this target
+            init_logging_system
+            
+            # Initialize Discord notifications
+            init_discord_system
+            
             run_scan
+            
+            # Finalize logging and notifications for this target
+            finalize_notifications
             
         done < "$target_list"
     else
         # Process single domain
         setup_output_dir "$domain" "$output_dir"
+        
+        # Initialize logging system
+        init_logging_system
+        
+        # Initialize Discord notifications
+        init_discord_system
+        
         run_scan
+        
+        # Finalize logging and notifications
+        finalize_notifications
     fi
     
     # Final summary
@@ -1474,6 +1648,92 @@ main() {
     log_success "Scan completed!"
     log_info "Total runtime: ${hours}h ${minutes}m ${seconds}s"
     log_info "Results saved in: $dir"
+}
+
+# Initialize logging system
+init_logging_system() {
+    if [[ "${LOGGING_ENABLED:-true}" == "true" ]] && type -t neko_log_init &>/dev/null; then
+        neko_log_init "$dir"
+        neko_log "INFO" "SYSTEM" "Neko v${NEKO_VERSION} starting" \
+            "target=${domain}" "mode=${mode}" "config=${config_file}"
+    fi
+}
+
+# Initialize Discord notification system
+init_discord_system() {
+    if [[ "${DISCORD_ENABLED:-true}" == "true" ]] && type -t discord_init &>/dev/null; then
+        if discord_init "${DISCORD_WEBHOOK_URL:-}"; then
+            # Send scan start notification
+            if [[ "${DISCORD_NOTIFY_SCAN_START:-true}" == "true" ]]; then
+                local config_summary="Mode: ${mode}, Phases: Enabled"
+                discord_notify_scan_start "$domain" "$mode" "$config_summary"
+            fi
+        else
+            log_warning "Discord notification system initialization failed"
+        fi
+    fi
+}
+
+# Finalize notifications and logging
+finalize_notifications() {
+    local end_time=$(date +%s)
+    local runtime=$((end_time - start_time))
+    
+    # Gather scan statistics
+    local subdomains=0
+    local urls=0
+    local vulns=0
+    local errors=0
+    
+    # Count subdomains
+    if [[ -f "${dir}/subdomains/subdomains.txt" ]]; then
+        subdomains=$(wc -l < "${dir}/subdomains/subdomains.txt" 2>/dev/null | tr -d ' ' || echo "0")
+    fi
+    
+    # Count URLs
+    if [[ -f "${dir}/urls/urls.txt" ]]; then
+        urls=$(wc -l < "${dir}/urls/urls.txt" 2>/dev/null | tr -d ' ' || echo "0")
+    fi
+    
+    # Count vulnerabilities
+    if [[ -d "${dir}/vulnerabilities" ]]; then
+        vulns=$(find "${dir}/vulnerabilities" -name "*.txt" -exec cat {} \; 2>/dev/null | wc -l | tr -d ' ' || echo "0")
+    fi
+    
+    # Get error count from logging stats
+    if type -t neko_export_log_stats &>/dev/null; then
+        errors=$(neko_export_log_stats | grep -o '"error": [0-9]*' | grep -o '[0-9]*' || echo "0")
+    fi
+    
+    # Send scan completion notification to Discord
+    if [[ "${DISCORD_ENABLED:-true}" == "true" ]] && \
+       [[ "${DISCORD_NOTIFY_SCAN_END:-true}" == "true" ]] && \
+       type -t discord_notify_scan_complete &>/dev/null; then
+        discord_notify_scan_complete "$domain" "$runtime" "$subdomains" "$urls" "$vulns" "$errors"
+    fi
+    
+    # Send summary if enabled
+    if [[ "${DISCORD_ENABLED:-true}" == "true" ]] && \
+       [[ "${DISCORD_SEND_SUMMARY:-true}" == "true" ]] && \
+       type -t discord_send_summary &>/dev/null; then
+        local stats_json
+        stats_json=$(printf '{"subdomains": %d, "urls": %d, "vulns_critical": 0, "vulns_high": 0, "vulns_medium": 0, "vulns_low": %d, "tools_run": %d, "tools_failed": %d, "errors": %d}' \
+            "$subdomains" "$urls" "$vulns" \
+            "${NEKO_TOOL_STATS["total_runs"]:-0}" \
+            "${NEKO_TOOL_STATS["failed"]:-0}" \
+            "$errors")
+        discord_send_summary "$domain" "$runtime" "$stats_json"
+    fi
+    
+    # Finalize Discord (flush queue)
+    if type -t discord_finalize &>/dev/null; then
+        discord_finalize ""
+    fi
+    
+    # Finalize logging system
+    if type -t neko_log_finalize &>/dev/null; then
+        neko_log_finalize
+    fi
 }
 
 run_scan() {
