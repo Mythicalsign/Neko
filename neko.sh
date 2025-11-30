@@ -20,7 +20,7 @@ set -Eeo pipefail
 # GLOBAL VARIABLES AND PATHS
 # ═══════════════════════════════════════════════════════════════════════════════
 
-readonly NEKO_VERSION="1.0.0"
+readonly NEKO_VERSION="2.0.0"
 readonly SCRIPTPATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly MODULES_PATH="${SCRIPTPATH}/modules"
 readonly LIB_PATH="${SCRIPTPATH}/lib"
@@ -430,9 +430,21 @@ cleanup() {
     # Kill all managed processes
     cleanup_all_procs
     
+    # Cleanup advanced features
+    type -t parallel_cleanup &>/dev/null && parallel_cleanup 2>/dev/null || true
+    type -t pipeline_cleanup &>/dev/null && pipeline_cleanup 2>/dev/null || true
+    type -t proxy_cleanup &>/dev/null && proxy_cleanup 2>/dev/null || true
+    type -t plugin_cleanup &>/dev/null && plugin_cleanup 2>/dev/null || true
+    type -t error_cleanup &>/dev/null && error_cleanup 2>/dev/null || true
+    
     # Save progress state
     if [[ -n "$dir" ]] && [[ -d "$dir" ]]; then
         echo "$(date): Scan interrupted with exit code $exit_code" >> "${dir}/scan.log"
+    fi
+    
+    # Generate error summary if available
+    if type -t error_summary &>/dev/null && [[ -n "$dir" ]]; then
+        error_summary >> "${dir}/logs/error_summary.txt" 2>/dev/null || true
     fi
     
     # Calculate runtime
@@ -557,6 +569,32 @@ validate_config() {
         log_warning "Missing API keys: ${missing_keys[*]}"
         log_warning "Some features will be limited without these keys."
     fi
+    
+    # Initialize advanced features
+    init_advanced_features
+}
+
+# Initialize v2.0 advanced features
+init_advanced_features() {
+    # Initialize parallel processing
+    if [[ "${PARALLEL_ENABLED:-true}" == "true" ]] && type -t parallel_init &>/dev/null; then
+        parallel_init "${dir}/.tmp/parallel" 2>/dev/null || true
+    fi
+    
+    # Initialize error handling
+    if type -t error_init &>/dev/null; then
+        error_init 2>/dev/null || true
+    fi
+    
+    # Initialize proxy rotation
+    if [[ "${PROXY_ROTATION_ENABLED:-false}" == "true" ]] && type -t proxy_init &>/dev/null; then
+        proxy_init "${PROXY_LIST_FILE:-}" 2>/dev/null || true
+    fi
+    
+    # Initialize plugin system
+    if [[ "${PLUGINS_ENABLED:-true}" == "true" ]] && type -t plugin_init &>/dev/null; then
+        plugin_init 2>/dev/null || true
+    fi
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -625,12 +663,41 @@ load_modules() {
         return 1
     fi
     
-    # Load library functions first
+    # Load library functions first (in order of dependencies)
+    local lib_load_order=(
+        "core.sh"
+        "parallel.sh"
+        "async_pipeline.sh"
+        "error_handling.sh"
+        "proxy_rotation.sh"
+        "intelligence.sh"
+        "plugin.sh"
+    )
+    
+    for lib_file in "${lib_load_order[@]}"; do
+        local full_path="${LIB_PATH}/${lib_file}"
+        if [[ -f "$full_path" ]]; then
+            # shellcheck source=/dev/null
+            source "$full_path"
+            log_debug "Loaded library: $lib_file"
+        fi
+    done
+    
+    # Load any additional library files not in the order list
     for lib_file in "${LIB_PATH}"/*.sh; do
         if [[ -f "$lib_file" ]]; then
-            # shellcheck source=/dev/null
-            source "$lib_file"
-            log_debug "Loaded library: $(basename "$lib_file")"
+            local basename=$(basename "$lib_file")
+            # Skip if already loaded
+            local already_loaded=false
+            for loaded in "${lib_load_order[@]}"; do
+                [[ "$basename" == "$loaded" ]] && already_loaded=true && break
+            done
+            
+            if [[ "$already_loaded" == "false" ]]; then
+                # shellcheck source=/dev/null
+                source "$lib_file"
+                log_debug "Loaded additional library: $basename"
+            fi
         fi
     done
     
@@ -699,6 +766,14 @@ run_full_mode() {
     log_phase "FULL SCAN MODE (INTRUSIVE)"
     notify "Starting full scan for $domain" "warning"
     
+    # Trigger pre-scan hooks
+    type -t trigger_pre_scan &>/dev/null && trigger_pre_scan
+    
+    # Initialize intelligence engine
+    if [[ "${INTELLIGENCE_ENABLED:-true}" == "true" ]] && type -t intel_init &>/dev/null; then
+        intel_init "${dir}/.tmp/intel"
+    fi
+    
     # Run all recon phases first
     run_recon_mode
     
@@ -714,8 +789,22 @@ run_full_mode() {
     # Phase 14: API Security
     [[ "${API_ENABLED:-true}" == "true" ]] && run_api_phase
     
+    # Phase 16: Advanced Vulnerability Testing (v2.0)
+    [[ "${ADVANCED_VULNS_ENABLED:-true}" == "true" ]] && run_advanced_vulns_phase
+    
+    # Run intelligence correlation
+    if [[ "${INTELLIGENCE_ENABLED:-true}" == "true" ]] && type -t intel_correlate &>/dev/null; then
+        intel_correlate
+        intel_find_attack_chains
+        intel_detect_patterns
+        intel_generate_report
+    fi
+    
     # Regenerate report with findings
     run_report_phase
+    
+    # Trigger post-scan hooks
+    type -t trigger_post_scan &>/dev/null && trigger_post_scan
     
     notify "Full scan completed for $domain" "success"
 }
@@ -827,6 +916,7 @@ run_custom_mode() {
             cloud) run_cloud_phase ;;
             auth) run_auth_phase ;;
             api) run_api_phase ;;
+            advanced_vulns|advanced) run_advanced_vulns_phase ;;
             report) run_report_phase ;;
             *)
                 log_warning "Unknown module: $module"
@@ -994,6 +1084,14 @@ run_nuclei_fast() {
     fi
 }
 
+run_advanced_vulns_phase() {
+    if [[ "$(type -t advanced_vulns_main)" == "function" ]]; then
+        advanced_vulns_main
+    else
+        log_warning "Advanced Vulnerability module not loaded"
+    fi
+}
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # TOOL VERIFICATION
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1085,7 +1183,7 @@ ${BWHITE}EXECUTION MODES:${RESET}
 ${BWHITE}MODULES:${RESET}
     osint, subdomain, dns, webprobe, portscan, content,
     fingerprint, urlanalysis, param, vulnscan, xss,
-    takeover, cloud, auth, api, report
+    takeover, cloud, auth, api, advanced_vulns, report
 
 ${BWHITE}ADDITIONAL OPTIONS:${RESET}
     ${BCYAN}--check-tools${RESET}               Check if all required tools are installed

@@ -1,7 +1,7 @@
-# 🐱 Neko - Advanced Bug Bounty Automation Framework
+# Neko - Advanced Bug Bounty Automation Framework
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.0.0-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-2.0.0-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
   <img src="https://img.shields.io/badge/platform-Linux%20%7C%20macOS-lightgrey.svg" alt="Platform">
   <img src="https://img.shields.io/badge/bash-5.0+-orange.svg" alt="Bash">
@@ -13,41 +13,51 @@
 
 ---
 
-## 🌟 Overview
+## Overview
 
-**Neko** is a sophisticated, modular bug bounty automation framework designed for professional security researchers. Built with enterprise-grade performance in mind, it orchestrates over 100+ security tools across 16 comprehensive phases to provide thorough reconnaissance and vulnerability assessment.
+**Neko** is a sophisticated, modular bug bounty automation framework designed for professional security researchers. Built with enterprise-grade performance in mind, it orchestrates over 100+ security tools across 17 comprehensive phases to provide thorough reconnaissance and vulnerability assessment.
+
+### What's New in v2.0
+
+- **GNU Parallel Processing Engine** - Massive performance improvements with intelligent job distribution
+- **Async Pipeline Architecture** - Advanced job queuing with dependency management
+- **Cross-Phase Intelligence** - Vulnerability correlation and attack chain detection
+- **Automatic Proxy/Tor Rotation** - Evade rate limiting and blocks automatically
+- **Plugin Architecture** - Extensible system for custom modules
+- **Advanced Error Handling** - Circuit breakers, exponential backoff, and fallback mechanisms
+- **9 New Advanced Vulnerability Tests** - Blind XSS, Prototype Pollution, HTTP Smuggling, Race Conditions, and more
 
 ### Key Features
 
-- 🔄 **16 Comprehensive Phases** - From OSINT to vulnerability exploitation
-- ⚡ **Enterprise Performance** - Per-tool rate limiting and resource management
-- 🛡️ **DOS Prevention** - Intelligent process management to avoid service disruption
-- 📊 **Rich Reporting** - HTML, Markdown, and JSON reports with executive summaries
-- 🔔 **Real-time Notifications** - Slack, Discord, Telegram integration
-- 🎯 **Multiple Scan Modes** - Recon, Full, Passive, Fast, Deep, Custom
-- 🧩 **Modular Architecture** - Enable/disable phases and tools as needed
-- 🔧 **Highly Configurable** - Extensive configuration options
+- **17 Comprehensive Phases** - From OSINT to advanced exploitation
+- **GNU Parallel Integration** - Distributed scanning across multiple cores/machines
+- **Intelligent Proxy Rotation** - Automatic Tor/proxy rotation with health monitoring
+- **Enterprise Performance** - Per-tool rate limiting and resource management
+- **DOS Prevention** - Circuit breakers and intelligent process management
+- **Cross-Phase Intelligence** - Automated vulnerability correlation and attack chain detection
+- **Plugin System** - Extensible architecture for custom modules
+- **Rich Reporting** - HTML, Markdown, JSON, and intelligence reports
+- **Real-time Notifications** - Slack, Discord, Telegram integration
+- **Multiple Scan Modes** - Recon, Full, Passive, Fast, Deep, Custom
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [Installation](#-installation)
 - [Quick Start](#-quick-start)
 - [Scan Modes](#-scan-modes)
 - [Phases Overview](#-phases-overview)
+- [Advanced Features v2.0](#-advanced-features-v20)
 - [Configuration](#-configuration)
-- [Rate Limiting](#-rate-limiting)
-- [Module Management](#-module-management)
+- [Plugin System](#-plugin-system)
 - [Reports](#-reports)
-- [Notifications](#-notifications)
 - [Tools Reference](#-tools-reference)
 - [Contributing](#-contributing)
-- [License](#-license)
 
 ---
 
-## 🚀 Installation
+## Installation
 
 ### Prerequisites
 
@@ -56,6 +66,7 @@
 - Go 1.19+
 - Python 3.8+
 - Root access (for some scanning tools)
+- GNU Parallel (for parallel processing)
 
 ### Quick Install
 
@@ -69,25 +80,17 @@ chmod +x install.sh
 ./install.sh
 ```
 
-### Manual Installation
+### Install GNU Parallel (Required for v2.0 features)
 
 ```bash
-# Install system dependencies
-sudo apt-get update
-sudo apt-get install -y git curl wget jq python3 python3-pip nmap masscan
+# Ubuntu/Debian
+sudo apt-get install parallel
 
-# Install Go tools
-go install github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
-go install github.com/projectdiscovery/httpx/cmd/httpx@latest
-go install github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest
-# ... (see install.sh for full list)
+# macOS
+brew install parallel
 
-# Install Python tools
-pip3 install wafw00f arjun sqlmap ghauri
-
-# Setup Neko
-chmod +x neko.sh
-sudo ln -s $(pwd)/neko.sh /usr/local/bin/neko
+# CentOS/RHEL
+sudo yum install parallel
 ```
 
 ### Verify Installation
@@ -98,7 +101,7 @@ sudo ln -s $(pwd)/neko.sh /usr/local/bin/neko
 
 ---
 
-## 🎯 Quick Start
+## Quick Start
 
 ### Basic Scan
 
@@ -109,35 +112,34 @@ sudo ln -s $(pwd)/neko.sh /usr/local/bin/neko
 # Fast scan for quick results
 ./neko.sh -d example.com -f
 
-# Scan with custom output directory
-./neko.sh -d example.com -o /path/to/output
+# Full scan including intrusive attacks
+./neko.sh -d example.com -a
 ```
 
-### Multi-Target Scan
+### Advanced Usage
 
 ```bash
-# Create targets file
-echo "example.com" > targets.txt
-echo "test.com" >> targets.txt
+# Deep scan with parallel processing
+./neko.sh -d example.com -a --deep
 
-# Scan all targets
-./neko.sh -l targets.txt
-```
+# Scan with proxy rotation
+./neko.sh -d example.com -a --proxy-rotate
 
-### Resume Previous Scan
+# Scan with Tor
+./neko.sh -d example.com -a --tor
 
-```bash
-./neko.sh -d example.com --resume -o previous_output_dir
+# Run only advanced vulnerability testing
+./neko.sh -d example.com --custom "advanced_vulns"
 ```
 
 ---
 
-## 🔧 Scan Modes
+## Scan Modes
 
 | Mode | Flag | Description |
 |------|------|-------------|
 | **Recon** | `-r, --recon` | Full reconnaissance (non-intrusive) - **Default** |
-| **Full** | `-a, --all` | Complete scan including intrusive attacks |
+| **Full** | `-a, --all` | Complete scan including intrusive attacks + advanced vulns |
 | **Passive** | `-p, --passive` | OSINT and passive enumeration only |
 | **Subs** | `-s, --subs` | Subdomain enumeration only |
 | **Web** | `-w, --web` | Web vulnerability scanning only |
@@ -145,321 +147,269 @@ echo "test.com" >> targets.txt
 | **Deep** | `--deep` | Extensive scanning (slow) |
 | **Custom** | `--custom` | Run specific modules |
 
-### Examples
+---
+
+## Phases Overview
+
+### Phase 0-15: Core Phases
+
+| Phase | Name | Description |
+|-------|------|-------------|
+| 0 | OSINT | Intelligence gathering, GitHub leaks, dorks |
+| 1 | Subdomain | Comprehensive subdomain enumeration |
+| 2 | DNS | DNS analysis and zone enumeration |
+| 3 | Web Probe | HTTP probing, WAF/CDN detection |
+| 4 | Port Scan | Port scanning and service detection |
+| 5 | Content | Directory/file fuzzing |
+| 6 | Fingerprint | Technology fingerprinting |
+| 7 | URL Analysis | URL discovery and JS analysis |
+| 8 | Parameters | Hidden parameter discovery |
+| 9 | Vuln Scan | Vulnerability scanning (nuclei, sqli, etc.) |
+| 10 | XSS | XSS detection and exploitation |
+| 11 | Takeover | Subdomain takeover detection |
+| 12 | Cloud | Cloud security testing |
+| 13 | Auth | Authentication testing |
+| 14 | API | API security testing |
+| 15 | Report | Report generation |
+
+### Phase 16: Advanced Vulnerability Testing (NEW in v2.0)
+
+| Module | Description |
+|--------|-------------|
+| **Blind XSS Hunter** | OOB XSS with callback server integration |
+| **Prototype Pollution** | DOM and server-side prototype pollution |
+| **Web Cache Deception** | Cache poisoning and deception attacks |
+| **HTTP Desync** | Request smuggling (CL.TE, TE.CL) |
+| **Race Conditions** | TOCTOU and race condition testing |
+| **GraphQL Deep Scan** | Introspection, batching, injection |
+| **WebSocket Testing** | CSWSH and WebSocket vulnerabilities |
+| **OAuth/OIDC Testing** | OAuth flow and OIDC security testing |
+
+---
+
+## Advanced Features v2.0
+
+### GNU Parallel Processing Engine
+
+Dramatically improve scan performance with intelligent parallel processing:
 
 ```bash
-# Deep scan with all attacks
-./neko.sh -d example.com -a --deep
-
-# Run only specific modules
-./neko.sh -d example.com --custom "osint,subdomain,dns"
-
-# Passive OSINT only
-./neko.sh -d example.com -p
+# Configure in neko.cfg
+PARALLEL_ENABLED=true
+PARALLEL_JOBS=0            # Auto-detect CPU cores
+PARALLEL_LOAD=80           # Max CPU load %
+PARALLEL_MEMFREE="1G"      # Minimum free memory
+PARALLEL_RETRIES=3         # Retry failed jobs
 ```
 
----
+Features:
+- Automatic CPU core detection
+- Memory-aware job scheduling
+- Distributed scanning across multiple machines
+- Job retry with exponential backoff
+- Real-time progress monitoring
 
-## 📊 Phases Overview
+### Async Pipeline Architecture
 
-### Phase 0: OSINT & Intelligence Gathering
-Gather intelligence before active scanning.
-
-| Tool | Purpose | Priority |
-|------|---------|----------|
-| whois | Domain registration info | High |
-| theHarvester | Email/subdomain harvesting | High |
-| github-subdomains | GitHub subdomain leaks | High |
-| gitlab-subdomains | GitLab subdomain leaks | Medium |
-| trufflehog | Secrets in repos | High |
-| gitleaks | Git leak detection | High |
-| porch-pirate | Postman API leaks | Medium |
-| SwaggerSpy | Swagger/OpenAPI leaks | Medium |
-| dorks_hunter | Google dorks automation | Medium |
-| Spoofy | SPF/DMARC misconfig | Low |
-
-### Phase 1: Subdomain Discovery
-Comprehensive subdomain enumeration.
-
-| Category | Tools |
-|----------|-------|
-| Passive | subfinder, assetfinder, chaos |
-| Active | amass, dnsx |
-| Certificate | crt, tlsx |
-| Bruteforce | puredns, massdns |
-| Permutation | gotator, ripgen, regulator |
-| Recursive | dsieve |
-
-### Phase 2: DNS Analysis & Enumeration
-Deep DNS analysis and record enumeration.
-
-| Tool | Purpose |
-|------|---------|
-| dnsx | Fast DNS resolution/records |
-| dnsrecon | Zone transfers, DNS records |
-| massdns | Bulk DNS resolution |
-| dig | Zone transfer checks |
-| hakip2host | Reverse IP lookup |
-
-### Phase 3: Web Probing & Detection
-Identify live web services.
-
-| Tool | Purpose |
-|------|---------|
-| httpx | HTTP probing with tech detection |
-| httprobe | Fast HTTP/HTTPS probing |
-| cdncheck | Identify CDN-protected hosts |
-| wafw00f | WAF detection |
-
-### Phase 4: Port Scanning & Service Detection
-Discover open ports and services.
-
-| Tool | Purpose |
-|------|---------|
-| masscan | Fast port discovery |
-| nmap | Deep service analysis |
-| naabu | Fast port scanner |
-| smap | Passive port scan (Shodan) |
-
-### Phase 5: Content Discovery & Fuzzing
-Discover hidden content and directories.
-
-| Tool | Purpose |
-|------|---------|
-| ffuf | Primary fuzzing tool |
-| feroxbuster | Recursive discovery |
-| gobuster | Directory/file bruteforce |
-| dirsearch | Quick directory scanning |
-
-### Phase 6: Technology Fingerprinting
-Identify technologies and CMS.
-
-| Tool | Purpose |
-|------|---------|
-| whatweb | Tech fingerprinting |
-| nikto | Web vulnerability scanner |
-| wpscan | WordPress specific |
-| CMSeeK | Multi-CMS detection |
-
-### Phase 7: URL & JavaScript Analysis
-Extract endpoints and secrets from JS.
-
-| Tool | Purpose |
-|------|---------|
-| katana | Web crawler/URL extraction |
-| waybackurls | Historical URLs |
-| gau | URLs from multiple sources |
-| subjs | JS file extraction |
-| jsluice | JS secret extraction |
-| xnLinkFinder | Link/endpoint extraction |
-| trufflehog | Secret detection in JS |
-
-### Phase 8: Parameter Discovery
-Find hidden parameters for injection testing.
-
-| Tool | Purpose |
-|------|---------|
-| arjun | Hidden parameter discovery |
-| paramspider | Parameter mining |
-| gf | Pattern-based filtering |
-| qsreplace | Query string manipulation |
-| urless | URL deduplication |
-
-### Phase 9: Vulnerability Scanning
-Comprehensive vulnerability assessment.
-
-| Category | Tools |
-|----------|-------|
-| Template-based | nuclei |
-| SQLi | sqlmap, ghauri |
-| Command Injection | commix |
-| SSTI | tplmap, nuclei |
-| SSRF | ssrfmap, nuclei |
-| CRLF | crlfuzz |
-| CORS | Corsy, nuclei |
-| Open Redirect | Oralyzer, nuclei |
-
-### Phase 10: XSS Detection
-Cross-site scripting testing.
-
-| Tool | Purpose |
-|------|---------|
-| dalfox | Primary XSS scanner |
-| XSStrike | Manual/DOM XSS |
-| Gxss | Parameter reflection check |
-| kxss | Quick XSS check |
-
-### Phase 11: Subdomain Takeover
-Detect takeover vulnerabilities.
-
-| Tool | Purpose |
-|------|---------|
-| nuclei | Takeover templates |
-| dnsreaper | Cloud-focused |
-| dnstake | CNAME takeover |
-| subjack | Classic checker |
-
-### Phase 12: Cloud Security
-Cloud-specific vulnerabilities.
-
-| Tool | Purpose |
-|------|---------|
-| S3Scanner | S3 bucket misconfig |
-| CloudHunter | Multi-cloud bucket check |
-| cloud_enum | Cloud service enumeration |
-
-### Phase 13: Authentication Testing
-Auth-specific vulnerabilities.
-
-| Tool | Purpose |
-|------|---------|
-| brutespray | Service brute-force |
-| hydra | Protocol brute-force |
-| jwt_tool | JWT analysis/attack |
-
-### Phase 14: API Security
-Modern API-focused testing.
-
-| Tool | Purpose |
-|------|---------|
-| nuclei | API templates |
-| kiterunner | API endpoint discovery |
-| wfuzz | API fuzzing |
-
-### Phase 15: Report Generation
-Generate comprehensive reports.
-
-| Format | Description |
-|--------|-------------|
-| HTML | Interactive visual report |
-| Markdown | Documentation-friendly |
-| JSON | Machine-readable export |
-| Executive Summary | High-level overview |
-
----
-
-## ⚙️ Configuration
-
-Configuration is managed through `neko.cfg`. Key sections include:
-
-### API Keys
+Advanced job queuing with dependency management:
 
 ```bash
-# GitHub/GitLab tokens
+# Enable in neko.cfg
+PIPELINE_ENABLED=true
+PIPELINE_MAX_CONCURRENT=5
+PIPELINE_TIMEOUT=7200
+```
+
+Features:
+- Dependency-based job scheduling
+- Priority queue management
+- Async callback handling
+- Pipeline state persistence
+- Job completion notifications
+
+### Cross-Phase Intelligence
+
+Automated vulnerability correlation and attack chain detection:
+
+```bash
+# Enable in neko.cfg
+INTELLIGENCE_ENABLED=true
+INTEL_AUTO_CORRELATE=true
+INTEL_ATTACK_CHAINS=true
+INTEL_PATTERN_RECOGNITION=true
+```
+
+Features:
+- SQLite-backed intelligence database
+- Cross-phase vulnerability correlation
+- Attack chain identification (SSRF→RCE, XSS→ATO, etc.)
+- Pattern recognition for common vulnerabilities
+- High-value target identification
+- Intelligence-based prioritization
+
+### Automatic Proxy/Tor Rotation
+
+Evade rate limiting and blocks automatically:
+
+```bash
+# Enable in neko.cfg
+PROXY_ROTATION_ENABLED=true
+PROXY_ROTATION_INTERVAL=300  # Rotate every 5 minutes
+PROXY_LIST_FILE="/path/to/proxies.txt"
+
+# Tor integration
+TOR_ENABLED=true
+TOR_SOCKS_PORT=9050
+```
+
+Features:
+- Automatic proxy health monitoring
+- Smart rotation on failure
+- Tor circuit rotation
+- Proxy list auto-update
+- Per-request or timed rotation
+
+### Advanced Error Handling
+
+Robust error handling with circuit breakers:
+
+```bash
+# Configure in neko.cfg
+MAX_RETRIES=3
+RETRY_INITIAL_DELAY=1
+RETRY_MAX_DELAY=60
+CIRCUIT_BREAKER_THRESHOLD=10
+```
+
+Features:
+- Exponential backoff retry
+- Circuit breaker pattern
+- Automatic tool fallbacks (subfinder → assetfinder)
+- Error rate monitoring
+- Automatic recovery mechanisms
+
+---
+
+## Plugin System
+
+Neko v2.0 introduces an extensible plugin architecture:
+
+### Creating a Plugin
+
+```bash
+# Create plugin template
+./neko.sh --plugin-create my_custom_scanner
+```
+
+### Plugin Structure
+
+```bash
+#!/usr/bin/env bash
+
+# Metadata function
+my_custom_scanner_metadata() {
+    cat << 'EOF'
+{
+    "name": "my_custom_scanner",
+    "version": "1.0.0",
+    "author": "Your Name",
+    "description": "Custom vulnerability scanner"
+}
+EOF
+}
+
+# Initialize plugin
+my_custom_scanner_init() {
+    plugin_register_hook "$HOOK_POST_PHASE" "my_custom_scanner_run" 50
+}
+
+# Main function
+my_custom_scanner_run() {
+    log_info "Running custom scanner..."
+    # Your scanning logic here
+}
+```
+
+### Installing Plugins
+
+```bash
+# Install from URL
+./neko.sh --plugin-install https://example.com/plugin.sh
+
+# Install from file
+./neko.sh --plugin-install /path/to/plugin.sh
+
+# List plugins
+./neko.sh --plugin-list
+
+# Enable/disable plugins
+./neko.sh --plugin-enable my_plugin
+./neko.sh --plugin-disable my_plugin
+```
+
+### Available Hooks
+
+| Hook | Description |
+|------|-------------|
+| `pre_scan` | Before scan starts |
+| `post_scan` | After scan completes |
+| `pre_phase` | Before each phase |
+| `post_phase` | After each phase |
+| `on_finding` | When vulnerability found |
+| `on_error` | On error occurrence |
+
+---
+
+## Configuration
+
+### Essential Configuration
+
+```bash
+# API Keys
 GITHUB_TOKEN="your_token"
-GITLAB_TOKEN="your_token"
-
-# Shodan API
 SHODAN_API_KEY="your_key"
-
-# Other APIs
 CENSYS_API_ID="your_id"
 CENSYS_API_SECRET="your_secret"
-VIRUSTOTAL_API_KEY="your_key"
+
+# OOB Detection
+XSS_HUNTER_URL="https://your.xss.ht"
+INTERACTSH_SERVER="oast.pro"
 ```
 
-### Phase Toggles
+### Performance Tuning
 
 ```bash
-# Enable/disable phases
-OSINT_ENABLED=true
-SUBDOMAIN_ENABLED=true
-DNS_ENABLED=true
-WEBPROBE_ENABLED=true
-PORTSCAN_ENABLED=true
-CONTENT_ENABLED=true
-FINGERPRINT_ENABLED=true
-URLANALYSIS_ENABLED=true
-PARAM_ENABLED=true
-VULNSCAN_ENABLED=true
-XSS_ENABLED=true
-TAKEOVER_ENABLED=true
-CLOUD_ENABLED=true
-AUTH_ENABLED=false  # Disabled by default (intrusive)
-API_ENABLED=true
-REPORT_ENABLED=true
-```
+# Parallel Processing
+PARALLEL_JOBS=8
+PARALLEL_LOAD=80
 
-### Threading
-
-```bash
-# Per-tool thread configuration
-SUBFINDER_THREADS=100
-HTTPX_THREADS=50
-NUCLEI_THREADS=25
-FFUF_THREADS=50
-MASSCAN_THREADS=1000
-```
-
----
-
-## ⏱️ Rate Limiting
-
-Neko implements per-tool rate limiting to prevent DOS and respect target infrastructure:
-
-```bash
-# Rate limits (requests per second, 0 = unlimited)
+# Rate Limiting
 HTTPX_RATELIMIT=150
 NUCLEI_RATELIMIT=150
 FFUF_RATELIMIT=100
-MASSCAN_RATE=1000
-SQLMAP_RATELIMIT=10
+
+# Threading
+HTTPX_THREADS=50
+NUCLEI_THREADS=25
 ```
 
-### Resource Management
+### Advanced Vulnerability Testing
 
 ```bash
-# Maximum concurrent operations
-MAX_NETWORK_PROCS=5
-MAX_CPU_PROCS=4
-MAX_IO_PROCS=3
+# Enable specific tests
+BLIND_XSS_ENABLED=true
+PROTOTYPE_POLLUTION_ENABLED=true
+CACHE_DECEPTION_ENABLED=true
+HTTP_DESYNC_ENABLED=true
+RACE_CONDITION_ENABLED=true
+GRAPHQL_DEEP_ENABLED=true
+WEBSOCKET_ENABLED=true
+OAUTH_OIDC_ENABLED=true
 ```
 
 ---
 
-## 🧩 Module Management
-
-### Running Specific Modules
-
-```bash
-# Run single module
-./neko.sh -d example.com --custom "subdomain"
-
-# Run multiple modules
-./neko.sh -d example.com --custom "osint,subdomain,dns,webprobe"
-```
-
-### Available Modules
-
-| Module | Alias | Description |
-|--------|-------|-------------|
-| osint | - | OSINT & Intelligence |
-| subdomain | subs | Subdomain Discovery |
-| dns | - | DNS Analysis |
-| webprobe | probe | Web Probing |
-| portscan | ports | Port Scanning |
-| content | fuzz | Content Discovery |
-| fingerprint | tech | Technology Detection |
-| urlanalysis | urls | URL/JS Analysis |
-| param | params | Parameter Discovery |
-| vulnscan | vuln | Vulnerability Scanning |
-| xss | - | XSS Detection |
-| takeover | - | Subdomain Takeover |
-| cloud | - | Cloud Security |
-| auth | - | Auth Testing |
-| api | - | API Security |
-| report | - | Report Generation |
-
-### Force Re-run
-
-```bash
-# Force re-run completed modules
-./neko.sh -d example.com --force
-```
-
----
-
-## 📝 Reports
+## Reports
 
 ### Generated Reports
 
@@ -469,74 +419,20 @@ After a scan completes, find reports in `output/<domain>/reports/`:
 - `neko_report.md` - Markdown documentation
 - `neko_report.json` - Machine-readable JSON
 - `executive_summary.txt` - High-level summary
+- `intelligence_report.md` - Cross-phase intelligence analysis
+- `intelligence.json` - Correlation data export
 
-### Report Features
+### Intelligence Report Features
 
-- **Vulnerability counts** by severity
-- **Risk assessment** score
-- **Attack surface** metrics
-- **Actionable recommendations**
-- **POC URLs** for verified vulnerabilities
-
----
-
-## 🔔 Notifications
-
-### Supported Platforms
-
-```bash
-# Enable notifications
-NOTIFICATION_ENABLED=true
-
-# Slack
-SLACK_WEBHOOK="https://hooks.slack.com/..."
-
-# Discord
-DISCORD_WEBHOOK="https://discord.com/api/webhooks/..."
-
-# Telegram
-TELEGRAM_BOT_TOKEN="your_bot_token"
-TELEGRAM_CHAT_ID="your_chat_id"
-
-# ProjectDiscovery Notify
-NOTIFY_CONFIG="~/.config/notify/provider-config.yaml"
-```
-
-### Notification Events
-
-- Scan started/completed
-- Critical vulnerabilities found
-- XSS confirmed
-- Subdomain takeover detected
+- Vulnerability correlation matrix
+- Attack chain identification
+- High-value target ranking
+- Severity distribution
+- Actionable recommendations
 
 ---
 
-## 🛠️ Tools Reference
-
-### Essential Tools (Required)
-
-| Tool | Purpose | Install |
-|------|---------|---------|
-| subfinder | Subdomain enumeration | `go install github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest` |
-| httpx | HTTP probing | `go install github.com/projectdiscovery/httpx/cmd/httpx@latest` |
-| nuclei | Vulnerability scanning | `go install github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest` |
-| dnsx | DNS toolkit | `go install github.com/projectdiscovery/dnsx/cmd/dnsx@latest` |
-| nmap | Port scanning | `apt install nmap` |
-| ffuf | Web fuzzing | `go install github.com/ffuf/ffuf/v2@latest` |
-
-### Recommended Tools
-
-| Tool | Purpose | Install |
-|------|---------|---------|
-| dalfox | XSS scanner | `go install github.com/hahwul/dalfox/v2@latest` |
-| katana | Web crawler | `go install github.com/projectdiscovery/katana/cmd/katana@latest` |
-| puredns | DNS resolver | `go install github.com/d3mondev/puredns/v2@latest` |
-| masscan | Fast port scan | `apt install masscan` |
-| sqlmap | SQL injection | `pip install sqlmap` |
-
----
-
-## 📁 Directory Structure
+## Directory Structure
 
 ```
 neko/
@@ -547,28 +443,28 @@ neko/
 ├── modules/
 │   ├── 00_osint.sh        # OSINT module
 │   ├── 01_subdomain.sh    # Subdomain discovery
-│   ├── 02_dns.sh          # DNS analysis
-│   ├── 03_webprobe.sh     # Web probing
-│   ├── 04_portscan.sh     # Port scanning
-│   ├── 05_content.sh      # Content discovery
-│   ├── 06_fingerprint.sh  # Tech fingerprinting
-│   ├── 07_urlanalysis.sh  # URL/JS analysis
-│   ├── 08_params.sh       # Parameter discovery
-│   ├── 09_vulnscan.sh     # Vulnerability scanning
-│   ├── 10_xss.sh          # XSS detection
-│   ├── 11_takeover.sh     # Subdomain takeover
-│   └── 15_report.sh       # Report generation
+│   ├── ...
+│   ├── 15_report.sh       # Report generation
+│   └── 16_advanced_vulns.sh # Advanced vulnerability testing (NEW)
 ├── lib/
-│   └── core.sh            # Core library functions
-├── wordlists/             # Custom wordlists
-├── templates/             # Report templates
+│   ├── core.sh            # Core library functions
+│   ├── parallel.sh        # GNU Parallel processing (NEW)
+│   ├── async_pipeline.sh  # Async pipeline architecture (NEW)
+│   ├── intelligence.sh    # Cross-phase intelligence (NEW)
+│   ├── proxy_rotation.sh  # Proxy/Tor rotation (NEW)
+│   ├── error_handling.sh  # Advanced error handling (NEW)
+│   └── plugin.sh          # Plugin architecture (NEW)
+├── plugins/               # Plugin directory (NEW)
+│   ├── custom/
+│   ├── community/
+│   └── integrations/
 ├── config/                # Additional configs
 └── output/                # Scan results
 ```
 
 ---
 
-## 🔒 Security Considerations
+## Security Considerations
 
 ### Responsible Usage
 
@@ -583,10 +479,11 @@ neko/
 - Conservative rate limits
 - CDN detection to avoid scanning protected hosts
 - WAF detection for bypass awareness
+- Circuit breakers prevent tool abuse
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please:
 
@@ -601,16 +498,17 @@ Contributions are welcome! Please:
 - Add error handling
 - Update documentation
 - Test across platforms
+- Add plugin hooks where appropriate
 
 ---
 
-## 📜 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - [ProjectDiscovery](https://projectdiscovery.io/) for amazing tools
 - [reconftw](https://github.com/six2dez/reconftw) for inspiration
@@ -618,12 +516,12 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-## ⚠️ Disclaimer
+## Disclaimer
 
 This tool is intended for authorized security testing only. Users are responsible for ensuring they have proper authorization before scanning any target. The authors are not responsible for any misuse or damage caused by this tool.
 
 ---
 
 <p align="center">
-  <b>Happy Hunting! 🎯</b>
+  <b>Happy Hunting!</b>
 </p>

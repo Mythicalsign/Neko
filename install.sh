@@ -84,6 +84,7 @@ install_dependencies() {
                 git curl wget jq python3 python3-pip python3-venv \
                 build-essential libpcap-dev libssl-dev \
                 nmap masscan nikto whois dnsutils \
+                parallel sqlite3 tor netcat-openbsd bc \
                 chromium-browser || sudo apt-get install -y chromium
             ;;
         fedora|centos|rhel)
@@ -91,6 +92,7 @@ install_dependencies() {
                 git curl wget jq python3 python3-pip \
                 gcc make libpcap-devel openssl-devel \
                 nmap masscan nikto whois bind-utils \
+                parallel sqlite tor nc bc \
                 chromium
             ;;
         arch|manjaro)
@@ -106,7 +108,8 @@ install_dependencies() {
                 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
             fi
             brew install git curl wget jq python3 \
-                nmap masscan nikto whois bind
+                nmap masscan nikto whois bind \
+                parallel sqlite tor netcat
             ;;
         *)
             log_warning "Unknown OS. Please install dependencies manually."
@@ -429,6 +432,7 @@ verify_installation() {
     
     local missing=()
     local critical_tools=("subfinder" "httpx" "nuclei" "ffuf" "nmap" "dnsx" "katana")
+    local v2_tools=("parallel" "sqlite3")
     
     for tool in "${critical_tools[@]}"; do
         if ! command -v "$tool" &>/dev/null; then
@@ -437,10 +441,25 @@ verify_installation() {
     done
     
     if [[ ${#missing[@]} -gt 0 ]]; then
-        log_warning "Missing tools: ${missing[*]}"
+        log_warning "Missing critical tools: ${missing[*]}"
         log_warning "Some features may not work without these tools."
     else
         log_success "All critical tools installed!"
+    fi
+    
+    # Check v2.0 dependencies
+    local v2_missing=()
+    for tool in "${v2_tools[@]}"; do
+        if ! command -v "$tool" &>/dev/null; then
+            v2_missing+=("$tool")
+        fi
+    done
+    
+    if [[ ${#v2_missing[@]} -gt 0 ]]; then
+        log_warning "Missing v2.0 tools: ${v2_missing[*]}"
+        log_warning "Advanced features (parallel processing, intelligence) may be limited."
+    else
+        log_success "All v2.0 dependencies installed!"
     fi
 }
 
