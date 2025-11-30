@@ -361,14 +361,14 @@ wait_for_slot() {
         cleanup_finished_procs "$category"
     done
     
-    ((CURRENT_PROCS[$category]++))
+    ((CURRENT_PROCS[$category]++)) || true
 }
 
 # Release process slot
 release_slot() {
     local category="$1"
     if [[ "${CURRENT_PROCS[$category]}" -gt 0 ]]; then
-        ((CURRENT_PROCS[$category]--))
+        ((CURRENT_PROCS[$category]--)) || true
     fi
 }
 
@@ -1768,6 +1768,58 @@ run_scan() {
             ;;
     esac
 }
+
+# Handle --help and --version before main (quick exit without full initialization)
+for arg in "$@"; do
+    case "$arg" in
+        -h|--help)
+            banner 2>/dev/null || true
+            cat << 'HELPEOF'
+USAGE:
+    ./neko.sh [OPTIONS] -d <domain>
+    ./neko.sh [OPTIONS] -l <target_list>
+
+OPTIONS:
+    -d, --domain <domain>       Target domain to scan
+    -l, --list <file>           File containing list of targets
+    -o, --output <dir>          Custom output directory
+    -c, --config <file>         Custom configuration file
+
+EXECUTION MODES:
+    -r, --recon                Full reconnaissance (non-intrusive) [DEFAULT]
+    -a, --all                  Full scan including intrusive attacks
+    -p, --passive              Passive mode only (OSINT + passive enum)
+    -s, --subs                 Subdomain enumeration only
+    -w, --web                  Web vulnerability scan only
+    -f, --fast                 Quick scan (essential checks only)
+    --deep                     Deep mode (extensive, slow)
+    --custom <modules>         Run specific modules (comma-separated)
+
+ADDITIONAL OPTIONS:
+    --check-tools               Check if all required tools are installed
+    --force                     Force re-run of completed modules
+    --resume                    Resume from previous scan
+    --quiet                     Minimal output
+    --debug                     Enable debug mode
+    --notify                    Enable notifications
+    -h, --help                  Show this help message
+    -v, --version               Show version
+
+EXAMPLES:
+    ./neko.sh -d example.com
+    ./neko.sh -d example.com -f -o /path/to/output
+    ./neko.sh -d example.com -a --deep
+    ./neko.sh -l targets.txt -r
+    ./neko.sh -d example.com --custom "osint,subdomain,dns"
+HELPEOF
+            exit 0
+            ;;
+        -v|--version)
+            echo "Neko v${NEKO_VERSION:-2.1.0}"
+            exit 0
+            ;;
+    esac
+done
 
 # Run main function
 main "$@"

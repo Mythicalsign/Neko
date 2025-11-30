@@ -284,7 +284,7 @@ _queue_execute_job() {
         "$job_file" > "${job_file}.tmp" && mv "${job_file}.tmp" "$job_file"
     
     # Increment current jobs
-    ((QUEUE_CURRENT_JOBS[$queue_name]++))
+    ((QUEUE_CURRENT_JOBS[$queue_name]++)) || true
     
     # Get job details
     local command=$(jq -r '.command' "$job_file")
@@ -333,7 +333,7 @@ _queue_execute_job() {
     fi
     
     # Decrement current jobs
-    ((QUEUE_CURRENT_JOBS[$queue_name]--))
+    ((QUEUE_CURRENT_JOBS[$queue_name]--)) || true
     
     # Update metrics
     _queue_update_metrics "$queue_name" "$duration" "$exit_code"
@@ -436,7 +436,7 @@ _queue_global_rate_check() {
         return 1
     fi
     
-    ((GLOBAL_CURRENT_RPS++))
+    ((GLOBAL_CURRENT_RPS++)) || true
     return 0
 }
 

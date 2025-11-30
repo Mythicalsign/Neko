@@ -1,0 +1,6 @@
+# Ignore output directory
+output/
+# Ignore local config with API keys (use neko.cfg.example as template)
+# Uncomment the line below if you want to keep your keys private
+# neko.cfg
+

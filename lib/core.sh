@@ -5,6 +5,122 @@
 # Common functions used across all modules
 # ═══════════════════════════════════════════════════════════════════════════════
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# CORE UTILITY FUNCTIONS (Available globally when library is loaded)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Check if a command exists (define if not already defined)
+if ! type -t command_exists &>/dev/null; then
+    command_exists() {
+        command -v "$1" &>/dev/null
+    }
+fi
+
+# Create directory if not exists (define if not already defined)
+if ! type -t ensure_dir &>/dev/null; then
+    ensure_dir() {
+        [[ -d "$1" ]] || mkdir -p "$1"
+    }
+fi
+
+# Timestamp for filenames (define if not already defined)
+if ! type -t timestamp &>/dev/null; then
+    timestamp() {
+        date +"%Y%m%d_%H%M%S"
+    }
+fi
+
+# Count lines in file (define if not already defined)
+if ! type -t count_lines &>/dev/null; then
+    count_lines() {
+        local file="$1"
+        if [[ -f "$file" ]]; then
+            wc -l < "$file" | tr -d ' '
+        else
+            echo "0"
+        fi
+    }
+fi
+
+# Validate domain format (define if not already defined)
+if ! type -t validate_domain &>/dev/null; then
+    validate_domain() {
+        local domain="$1"
+        if [[ "$domain" =~ ^([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$ ]]; then
+            return 0
+        elif [[ "$domain" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
+            return 0
+        elif [[ "$domain" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]{1,2}$ ]]; then
+            return 0
+        else
+            return 1
+        fi
+    }
+fi
+
+# Check if target is IP (define if not already defined)
+if ! type -t is_ip &>/dev/null; then
+    is_ip() {
+        [[ "$1" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]
+    }
+fi
+
+# Check if target is CIDR (define if not already defined)
+if ! type -t is_cidr &>/dev/null; then
+    is_cidr() {
+        [[ "$1" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]{1,2}$ ]]
+    }
+fi
+
+# Deduplicate file in place (define if not already defined)
+if ! type -t dedupe_file &>/dev/null; then
+    dedupe_file() {
+        local file="$1"
+        if [[ -f "$file" ]]; then
+            sort -u "$file" -o "$file"
+        fi
+    }
+fi
+
+# Check if file exists and is not empty (define if not already defined)
+if ! type -t file_exists_not_empty &>/dev/null; then
+    file_exists_not_empty() {
+        [[ -s "$1" ]]
+    }
+fi
+
+# Basic log functions fallback (if not defined by logging.sh)
+if ! type -t log_info &>/dev/null; then
+    log_info() { echo "[INFO] $1"; }
+fi
+if ! type -t log_success &>/dev/null; then
+    log_success() { echo "[SUCCESS] $1"; }
+fi
+if ! type -t log_warning &>/dev/null; then
+    log_warning() { echo "[WARNING] $1"; }
+fi
+if ! type -t log_error &>/dev/null; then
+    log_error() { echo "[ERROR] $1" >&2; }
+fi
+if ! type -t log_debug &>/dev/null; then
+    log_debug() { [[ "${DEBUG:-false}" == "true" ]] && echo "[DEBUG] $1"; }
+fi
+if ! type -t log_module &>/dev/null; then
+    log_module() { echo "[MODULE] $1"; }
+fi
+
+# Module tracking fallback functions
+if ! type -t mark_module_started &>/dev/null; then
+    mark_module_started() { :; }
+fi
+if ! type -t mark_module_completed &>/dev/null; then
+    mark_module_completed() { :; }
+fi
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# MODULE TRACKING FUNCTIONS
+# ═══════════════════════════════════════════════════════════════════════════════
+
 # Start function tracking
 start_func() {
     local func_name="$1"

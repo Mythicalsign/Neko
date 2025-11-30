@@ -170,7 +170,7 @@ _discord_can_send() {
     
     # Check if we're within rate limits
     if [[ ${#DISCORD_REQUEST_TIMESTAMPS[@]} -ge $DISCORD_RATE_LIMIT_REQUESTS ]]; then
-        ((DISCORD_STATS["rate_limited"]++))
+        ((DISCORD_STATS["rate_limited"]++)) || true
         neko_log "DEBUG" "DISCORD" "Rate limited - queuing message"
         return 1
     fi
@@ -205,7 +205,7 @@ _discord_queue_message() {
     local payload="$1"
     
     DISCORD_MESSAGE_QUEUE+=("$payload")
-    ((DISCORD_STATS["total_queued"]++))
+    ((DISCORD_STATS["total_queued"]++)) || true
     
     neko_log "DEBUG" "DISCORD" "Message queued (queue size: ${#DISCORD_MESSAGE_QUEUE[@]})"
     
@@ -283,29 +283,29 @@ _discord_send_raw() {
         case "$http_code" in
             200|204)
                 # Success
-                ((DISCORD_STATS["total_sent"]++))
+                ((DISCORD_STATS["total_sent"]++)) || true
                 success=true
                 neko_log "DEBUG" "DISCORD" "Message sent successfully"
                 ;;
             429)
                 # Rate limited by Discord
-                ((DISCORD_STATS["rate_limited"]++))
+                ((DISCORD_STATS["rate_limited"]++)) || true
                 local retry_after=$(echo "$body" | grep -o '"retry_after":[0-9.]*' | cut -d: -f2)
                 retry_after=${retry_after:-5}
                 neko_log "WARNING" "DISCORD" "Rate limited by Discord, waiting ${retry_after}s"
                 sleep "$retry_after"
-                ((DISCORD_STATS["total_retried"]++))
+                ((DISCORD_STATS["total_retried"]++)) || true
                 ;;
             400)
                 # Bad request - log and don't retry
                 neko_log "ERROR" "DISCORD" "Bad request to Discord API: $body"
-                ((DISCORD_STATS["total_failed"]++))
+                ((DISCORD_STATS["total_failed"]++)) || true
                 break
                 ;;
             401|403)
                 # Auth error - webhook may be invalid
                 neko_log "ERROR" "DISCORD" "Discord webhook authentication failed"
-                ((DISCORD_STATS["total_failed"]++))
+                ((DISCORD_STATS["total_failed"]++)) || true
                 break
                 ;;
             *)
@@ -313,13 +313,13 @@ _discord_send_raw() {
                 local delay=$((DISCORD_RETRY_DELAY * attempt))
                 neko_log "WARNING" "DISCORD" "Discord request failed (HTTP $http_code), retrying in ${delay}s"
                 sleep "$delay"
-                ((DISCORD_STATS["total_retried"]++))
+                ((DISCORD_STATS["total_retried"]++)) || true
                 ;;
         esac
     done
     
     if [[ "$success" == "false" ]]; then
-        ((DISCORD_STATS["total_failed"]++))
+        ((DISCORD_STATS["total_failed"]++)) || true
         neko_log "ERROR" "DISCORD" "Failed to send message after $attempt attempts"
         return 1
     fi

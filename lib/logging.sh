@@ -195,8 +195,8 @@ neko_log() {
         return 0
     fi
     
-    # Update statistics
-    ((NEKO_LOG_STATS["total"]++))
+    # Update statistics (use || true to prevent exit on first increment from 0)
+    ((NEKO_LOG_STATS["total"]++)) || true
     ((NEKO_LOG_STATS["${level,,}"]++)) 2>/dev/null || true
     
     # Generate timestamp
@@ -289,23 +289,26 @@ _write_log_entry() {
     local level="$1"
     local entry="$2"
     
+    # Skip if log files not initialized
+    [[ -z "$NEKO_MAIN_LOG" ]] && return 0
+    
     # Always write to main log
-    echo "$entry" >> "$NEKO_MAIN_LOG"
+    [[ -n "$NEKO_MAIN_LOG" ]] && echo "$entry" >> "$NEKO_MAIN_LOG" 2>/dev/null || true
     
     # Write to debug log (all levels)
-    echo "$entry" >> "$NEKO_DEBUG_LOG"
+    [[ -n "$NEKO_DEBUG_LOG" ]] && echo "$entry" >> "$NEKO_DEBUG_LOG" 2>/dev/null || true
     
     # Write to error log for warnings and above
     case "$level" in
         WARNING|ERROR|CRITICAL|ALERT|EMERGENCY)
-            echo "$entry" >> "$NEKO_ERROR_LOG"
+            [[ -n "$NEKO_ERROR_LOG" ]] && echo "$entry" >> "$NEKO_ERROR_LOG" 2>/dev/null || true
             ;;
     esac
     
     # Write to audit log for important actions
     case "$level" in
         NOTICE|WARNING|ERROR|CRITICAL|ALERT|EMERGENCY)
-            echo "$entry" >> "$NEKO_AUDIT_LOG"
+            [[ -n "$NEKO_AUDIT_LOG" ]] && echo "$entry" >> "$NEKO_AUDIT_LOG" 2>/dev/null || true
             ;;
     esac
 }
@@ -436,7 +439,7 @@ neko_log_tool_start() {
     local tool_start_time=$(date +%s)
     local tool_log="${NEKO_LOG_DIR}/tools/${tool_name}_${NEKO_SESSION_ID}.log"
     
-    ((NEKO_TOOL_STATS["total_runs"]++))
+    ((NEKO_TOOL_STATS["total_runs"]++)) || true
     
     neko_log "INFO" "TOOL" "Starting tool: ${tool_name}" \
         "phase=${phase}" "target=${target}" "command_length=${#command}"
@@ -470,16 +473,16 @@ neko_log_tool_end() {
     local status="SUCCESS"
     if [[ "$exit_code" -eq 124 ]]; then
         status="TIMEOUT"
-        ((NEKO_TOOL_STATS["timeout"]++))
+        ((NEKO_TOOL_STATS["timeout"]++)) || true
         neko_log "WARNING" "TOOL" "Tool timed out: ${tool_name}" \
             "duration=${duration}s" "exit_code=${exit_code}"
     elif [[ "$exit_code" -ne 0 ]]; then
         status="FAILED"
-        ((NEKO_TOOL_STATS["failed"]++))
+        ((NEKO_TOOL_STATS["failed"]++)) || true
         neko_log "ERROR" "TOOL" "Tool failed: ${tool_name}" \
             "duration=${duration}s" "exit_code=${exit_code}"
     else
-        ((NEKO_TOOL_STATS["successful"]++))
+        ((NEKO_TOOL_STATS["successful"]++)) || true
         neko_log "INFO" "TOOL" "Tool completed: ${tool_name}" \
             "duration=${duration}s" "output_lines=${output_lines}"
     fi
@@ -493,7 +496,7 @@ neko_log_tool_skipped() {
     local tool_name="$1"
     local reason="${2:-already completed}"
     
-    ((NEKO_TOOL_STATS["skipped"]++))
+    ((NEKO_TOOL_STATS["skipped"]++)) || true
     neko_log "DEBUG" "TOOL" "Skipping tool: ${tool_name}" "reason=${reason}"
 }
 
