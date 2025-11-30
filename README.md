@@ -1,7 +1,7 @@
 # Neko - Advanced Bug Bounty Automation Framework
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.1.0-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-2.2.0-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
   <img src="https://img.shields.io/badge/platform-Linux%20%7C%20macOS-lightgrey.svg" alt="Platform">
   <img src="https://img.shields.io/badge/bash-5.0+-orange.svg" alt="Bash">
@@ -16,6 +16,15 @@
 ## Overview
 
 **Neko** is a sophisticated, modular bug bounty automation framework designed for professional security researchers. Built with enterprise-grade performance in mind, it orchestrates over 100+ security tools across 18 comprehensive phases to provide thorough reconnaissance and vulnerability assessment.
+
+### What's New in v2.2
+
+- **Advanced Logging System** - Comprehensive multi-level logging with session tracking, performance metrics, and structured log files
+- **Discord Notification System** - Real-time notifications with rich embeds, rate limiting, and intelligent message queuing
+- **Enhanced Notification Types** - Vulnerability alerts, phase progress, subdomain takeover notifications, and scan summaries
+- **Rate Limit Protection** - Built-in Discord rate limit handling to prevent API throttling
+- **Message Batching** - Intelligent message queuing to optimize notification delivery
+- **Log Rotation** - Automatic log rotation and archival system
 
 ### What's New in v2.1
 
@@ -39,7 +48,8 @@
 - **Bettercap Integration** - Network security testing, SSL analysis, credential detection
 - **Plugin System** - Extensible architecture for custom modules
 - **Rich Reporting** - HTML, Markdown, JSON, and intelligence reports
-- **Real-time Notifications** - Slack, Discord, Telegram integration
+- **Discord Notifications** - Real-time Discord webhook notifications with rich embeds
+- **Advanced Logging** - Multi-level logging with session tracking and performance metrics
 - **Multiple Scan Modes** - Recon, Full, Passive, Fast, Deep, Custom
 
 ---
@@ -50,6 +60,9 @@
 - [Quick Start](#quick-start)
 - [Scan Modes](#scan-modes)
 - [Phases Overview](#phases-overview)
+- [v2.2 Advanced Features](#v22-advanced-features)
+  - [Advanced Logging System](#advanced-logging-system)
+  - [Discord Notification System](#discord-notification-system)
 - [v2.1 Advanced Features](#v21-advanced-features)
 - [Queue Management System](#queue-management-system)
 - [Error Reporting System](#error-reporting-system)
@@ -179,6 +192,302 @@ sudo yum install parallel
 | 15 | Report | Report generation |
 | 16 | Advanced Vulns | Blind XSS, Prototype Pollution, HTTP Desync, etc. |
 | **17** | **Bettercap** | **Network security testing (NEW in v2.1)** |
+
+---
+
+## v2.2 Advanced Features
+
+### Advanced Logging System
+
+Neko v2.2 introduces a comprehensive logging system that captures everything happening during automation:
+
+#### Log Levels
+
+| Level | Description | Use Case |
+|-------|-------------|----------|
+| TRACE | Most detailed logging | Deep debugging |
+| DEBUG | Debug information | Development/troubleshooting |
+| INFO | General information | Normal operation |
+| NOTICE | Notable events | Important milestones |
+| WARNING | Warning conditions | Potential issues |
+| ERROR | Error conditions | Recoverable errors |
+| CRITICAL | Critical conditions | Serious errors |
+| ALERT | Action required | Immediate attention |
+| EMERGENCY | System unusable | Fatal errors |
+
+#### Log Files Generated
+
+After each scan, the following log files are created in `output/<domain>/logs/`:
+
+```
+logs/
+├── neko_<session_id>.log          # Main log file
+├── errors_<session_id>.log        # Error-specific logs
+├── debug_<session_id>.log         # Debug-level logs
+├── audit_<session_id>.log         # Security audit trail
+├── tools_<session_id>.log         # Tool execution logs
+├── network_<session_id>.log       # Network activity logs
+├── vulnerabilities_<session_id>.log # Vulnerability findings
+├── performance_<session_id>.log   # Performance metrics
+├── phases/                        # Per-phase detailed logs
+│   ├── phase_0_OSINT_<session>.log
+│   ├── phase_1_Subdomain_<session>.log
+│   └── ...
+├── tools/                         # Per-tool logs
+└── archive/                       # Rotated/archived logs
+```
+
+#### Configuration
+
+```bash
+# Enable advanced logging (default: true)
+LOGGING_ENABLED=true
+
+# Set log level (TRACE, DEBUG, INFO, NOTICE, WARNING, ERROR, CRITICAL, ALERT, EMERGENCY)
+NEKO_LOG_LEVEL="INFO"
+
+# Log format (simple, detailed, json)
+NEKO_LOG_FORMAT="detailed"
+
+# Log rotation settings
+NEKO_LOG_MAX_SIZE=104857600    # 100MB
+NEKO_LOG_ROTATE=true
+NEKO_LOG_ROTATE_COUNT=5
+
+# Enable performance logging
+NEKO_LOG_PERFORMANCE=true
+NEKO_LOG_NETWORK=true
+NEKO_LOG_TOOLS=true
+```
+
+#### Log Format Examples
+
+**Detailed Format (Default):**
+```
+[2024-01-15 10:30:00.123] [session_abc123] [INFO      ] [SUBDOMAIN      ] Discovered 50 new subdomains | source=subfinder
+```
+
+**JSON Format:**
+```json
+{"timestamp": "2024-01-15T10:30:00.123Z", "session_id": "session_abc123", "level": "INFO", "category": "SUBDOMAIN", "message": "Discovered 50 new subdomains", "context": {"source": "subfinder"}}
+```
+
+---
+
+### Discord Notification System
+
+Neko v2.2 features a powerful Discord webhook notification system that provides real-time updates during scanning.
+
+#### Features
+
+- **Rich Embed Messages** - Beautiful formatted notifications with colors, fields, and timestamps
+- **Rate Limit Protection** - Built-in rate limiting to prevent Discord API throttling (max 25 requests/60 seconds)
+- **Message Queuing** - Intelligent message batching and queuing during high activity
+- **Notification Types** - Scan start/end, phase progress, vulnerability alerts, subdomain takeovers
+- **Severity-Based Colors** - Visual distinction for critical, high, medium, and low severity findings
+- **Mentions** - Optional role/user mentions for critical vulnerabilities
+
+#### Setting Up Discord Notifications
+
+1. **Create a Discord Webhook:**
+   - Go to your Discord server
+   - Navigate to Server Settings → Integrations → Webhooks
+   - Click "New Webhook"
+   - Copy the webhook URL
+
+2. **Configure in neko.cfg:**
+   ```bash
+   # Enable Discord notifications
+   DISCORD_ENABLED=true
+   
+   # Set your webhook URL
+   DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN"
+   ```
+
+3. **Run a scan:**
+   ```bash
+   ./neko.sh -d example.com
+   ```
+
+#### Configuration Options
+
+```bash
+# ═══════════════════════════════════════════════════════════════
+# DISCORD WEBHOOK CONFIGURATION
+# ═══════════════════════════════════════════════════════════════
+
+# Enable Discord notifications
+DISCORD_ENABLED=true
+
+# Discord Webhook URL (REQUIRED)
+DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/ID/TOKEN"
+
+# Thread ID (optional - send to specific thread)
+DISCORD_THREAD_ID=""
+
+# ───────────────────────────────────────────────────────────────
+# RATE LIMITING
+# ───────────────────────────────────────────────────────────────
+
+# Rate limit settings (Discord allows ~30 requests/60 seconds)
+DISCORD_RATE_LIMIT_REQUESTS=25    # Max requests per window
+DISCORD_RATE_LIMIT_WINDOW=60      # Window in seconds
+DISCORD_MIN_REQUEST_INTERVAL=2    # Min seconds between requests
+DISCORD_RETRY_ATTEMPTS=3          # Retry attempts on failure
+DISCORD_RETRY_DELAY=5             # Base retry delay
+
+# Message queue (helps prevent rate limiting)
+DISCORD_QUEUE_ENABLED=true
+DISCORD_QUEUE_BATCH_SIZE=5
+DISCORD_QUEUE_FLUSH_INTERVAL=10
+
+# ───────────────────────────────────────────────────────────────
+# NOTIFICATION SETTINGS
+# ───────────────────────────────────────────────────────────────
+
+# Minimum level to notify
+DISCORD_NOTIFY_LEVEL="INFO"
+
+# Include timestamps
+DISCORD_INCLUDE_TIMESTAMPS=true
+
+# Mention settings (use Discord IDs)
+DISCORD_MENTION_ROLE=""           # Role ID for critical findings
+DISCORD_MENTION_USER=""           # User ID for critical findings
+
+# ───────────────────────────────────────────────────────────────
+# NOTIFICATION TYPES
+# ───────────────────────────────────────────────────────────────
+
+DISCORD_NOTIFY_SCAN_START=true       # Scan started
+DISCORD_NOTIFY_SCAN_END=true         # Scan completed
+DISCORD_NOTIFY_PHASE_START=true      # Phase started
+DISCORD_NOTIFY_PHASE_END=true        # Phase completed
+DISCORD_NOTIFY_TOOL_RUN=false        # Tool execution (noisy)
+DISCORD_NOTIFY_VULNERABILITIES=true  # Vulnerability findings
+DISCORD_NOTIFY_SUBDOMAINS=true       # Subdomain discoveries
+DISCORD_NOTIFY_URLS=false            # URL discoveries (noisy)
+DISCORD_NOTIFY_PORTS=true            # Open ports
+DISCORD_NOTIFY_TAKEOVER=true         # Subdomain takeovers
+DISCORD_NOTIFY_ERRORS=true           # Error notifications
+DISCORD_NOTIFY_CRITICAL_ONLY=false   # Only critical/high
+
+# Batching (reduce spam)
+DISCORD_BATCH_SUBDOMAINS=true
+DISCORD_BATCH_SUBDOMAIN_THRESHOLD=10
+DISCORD_BATCH_URLS=true
+DISCORD_BATCH_URL_THRESHOLD=50
+
+# Summary
+DISCORD_SEND_SUMMARY=true            # Send scan summary
+DISCORD_SEND_HOURLY_UPDATE=false     # Hourly progress
+```
+
+#### Notification Examples
+
+**Scan Start:**
+```
+🚀 Scan Started
+A new bug bounty scan has been initiated.
+
+Target: example.com
+Mode: full
+Session: 20240115_103000_abc123
+Started: 2024-01-15 10:30:00
+```
+
+**Vulnerability Found (Critical):**
+```
+🚨 CRITICAL Vulnerability Found!
+A vulnerability has been discovered!
+
+Severity: CRITICAL
+Type: SQL Injection
+Tool: sqlmap
+Target: `https://example.com/api/users?id=1`
+Details: Time-based blind SQL injection in user ID parameter
+
+Proof of Concept:
+```
+id=1' AND SLEEP(5)--
+```
+```
+
+**Subdomain Takeover:**
+```
+👑 Potential Subdomain Takeover!
+A potential subdomain takeover vulnerability has been identified.
+
+Subdomain: `old-staging.example.com`
+Service: AWS S3
+Confidence: HIGH
+Details: CNAME points to unclaimed S3 bucket
+```
+
+**Scan Summary:**
+```
+📊 Scan Summary Report
+Complete summary of the bug bounty scan.
+
+🎯 Target: `example.com`
+⏱️ Duration: 2h 15m
+🔧 Tools Run: 45
+❌ Failed: 2
+
+───────────────────────────
+Discovery Results
+───────────────────────────
+🌐 Subdomains: 150
+🔗 URLs: 2,500
+⚠️ Errors: 5
+
+───────────────────────────
+Vulnerability Summary
+───────────────────────────
+🚨 Critical: 0
+🔴 High: 2
+🟠 Medium: 5
+🟡 Low: 12
+```
+
+#### Testing Discord Integration
+
+Run the included test script to verify your Discord webhook is working:
+
+```bash
+./test_discord.sh
+```
+
+This will send a series of test notifications to your Discord channel:
+- Test embed message
+- Scan start/end notifications
+- Phase notifications
+- Vulnerability alerts (medium/high)
+- Subdomain takeover alert
+- Error notification
+- Scan summary
+
+#### Troubleshooting
+
+**Common Issues:**
+
+1. **"Invalid webhook URL" error:**
+   - Ensure the URL starts with `https://discord.com/api/webhooks/`
+   - Check for typos in the webhook ID and token
+
+2. **Messages not appearing:**
+   - Verify the webhook wasn't deleted in Discord
+   - Check if rate limiting is being applied (wait 60 seconds)
+   - Ensure `DISCORD_ENABLED=true` in config
+
+3. **Rate limiting errors:**
+   - Reduce `DISCORD_RATE_LIMIT_REQUESTS` to 20
+   - Increase `DISCORD_MIN_REQUEST_INTERVAL` to 3
+   - Enable `DISCORD_QUEUE_ENABLED=true`
+
+4. **Missing notifications:**
+   - Check the specific notification type is enabled
+   - Verify `DISCORD_NOTIFY_LEVEL` is set appropriately
 
 ---
 
@@ -488,6 +797,37 @@ NUCLEI_RATELIMIT=150
 FFUF_RATELIMIT=100
 ```
 
+### v2.2 Feature Configuration
+
+```bash
+# ═══════════════════════════════════════════════════════════════
+# LOGGING SYSTEM
+# ═══════════════════════════════════════════════════════════════
+
+LOGGING_ENABLED=true
+NEKO_LOG_LEVEL="INFO"
+NEKO_LOG_FORMAT="detailed"
+NEKO_LOG_MAX_SIZE=104857600
+NEKO_LOG_ROTATE=true
+NEKO_LOG_ROTATE_COUNT=5
+NEKO_LOG_PERFORMANCE=true
+NEKO_LOG_NETWORK=true
+NEKO_LOG_TOOLS=true
+
+# ═══════════════════════════════════════════════════════════════
+# DISCORD NOTIFICATIONS
+# ═══════════════════════════════════════════════════════════════
+
+DISCORD_ENABLED=true
+DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/YOUR_ID/YOUR_TOKEN"
+DISCORD_RATE_LIMIT_REQUESTS=25
+DISCORD_RATE_LIMIT_WINDOW=60
+DISCORD_QUEUE_ENABLED=true
+DISCORD_NOTIFY_VULNERABILITIES=true
+DISCORD_NOTIFY_TAKEOVER=true
+DISCORD_SEND_SUMMARY=true
+```
+
 ### v2.1 Feature Configuration
 
 ```bash
@@ -597,22 +937,25 @@ neko/
 ├── neko.cfg                # Configuration file
 ├── install.sh              # Installer script
 ├── README.md               # Documentation
+├── test_discord.sh         # Discord notification test script (v2.2)
 ├── modules/
 │   ├── 00_osint.sh        # OSINT module
 │   ├── 01_subdomain.sh    # Subdomain discovery
 │   ├── ...
 │   ├── 15_report.sh       # Report generation
 │   ├── 16_advanced_vulns.sh # Advanced vulnerability testing
-│   └── 17_bettercap.sh    # Bettercap network security (NEW)
+│   └── 17_bettercap.sh    # Bettercap network security (v2.1)
 ├── lib/
 │   ├── core.sh            # Core library functions
+│   ├── logging.sh         # Advanced logging system (v2.2 NEW)
+│   ├── discord_notifications.sh # Discord webhook notifications (v2.2 NEW)
 │   ├── parallel.sh        # GNU Parallel processing
 │   ├── async_pipeline.sh  # Async pipeline architecture
 │   ├── error_handling.sh  # Advanced error handling
-│   ├── error_reporting.sh # JSON error reports (NEW)
-│   ├── queue_manager.sh   # Queue management system (NEW)
-│   ├── data_flow_bus.sh   # Inter-tool communication (NEW)
-│   ├── orchestrator.sh    # Advanced orchestration (NEW)
+│   ├── error_reporting.sh # JSON error reports (v2.1)
+│   ├── queue_manager.sh   # Queue management system (v2.1)
+│   ├── data_flow_bus.sh   # Inter-tool communication (v2.1)
+│   ├── orchestrator.sh    # Advanced orchestration (v2.1)
 │   ├── proxy_rotation.sh  # Proxy/Tor rotation
 │   ├── intelligence.sh    # Cross-phase intelligence
 │   └── plugin.sh          # Plugin architecture
